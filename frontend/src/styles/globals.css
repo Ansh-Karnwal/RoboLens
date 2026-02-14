@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a0e1a;
+  color: #e2e8f0;
+  font-family: 'Space Mono', monospace;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Scanline overlay for canvas */
+.scanline-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 212, 255, 0.015) 2px,
+    rgba(0, 212, 255, 0.015) 4px
+  );
+  z-index: 2;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4), 0 0 4px rgba(0, 212, 255, 0.2);
+}
+.glow-orange {
+  box-shadow: 0 0 12px rgba(255, 107, 53, 0.4), 0 0 4px rgba(255, 107, 53, 0.2);
+}
+.glow-green {
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.4), 0 0 4px rgba(0, 255, 136, 0.2);
+}
+.glow-purple {
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4), 0 0 4px rgba(168, 85, 247, 0.2);
+}
+.glow-yellow {
+  box-shadow: 0 0 12px rgba(255, 204, 0, 0.4), 0 0 4px rgba(255, 204, 0, 0.2);
+}
+
+/* Panel style */
+.panel {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+}
+
+/* Pulse animation for idle robots */
+@keyframes idlePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+.idle-pulse {
+  animation: idlePulse 2s ease-in-out infinite;
+}
+
+/* Flash for paused state */
+@keyframes flashYellow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.flash-yellow {
+  animation: flashYellow 0.8s ease-in-out infinite;
+}
+
+/* Typing animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.typing-cursor::after {
+  content: '█';
+  animation: blink 1s infinite;
+  color: #00d4ff;
+}
+
+/* ReactFlow custom styles */
+.react-flow__node {
+  border-radius: 8px !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 11px !important;
+}
+.react-flow__edge-path {
+  stroke-width: 2 !important;
+}
+.react-flow__background {
+  background-color: #0a0e1a !important;
+}
+.react-flow__minimap {
+  background-color: #111827 !important;
+  border: 1px solid #1f2937 !important;
+  border-radius: 6px !important;
+}
+.react-flow__controls {
+  border: 1px solid #1f2937 !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: #111827 !important;
+  border-bottom: 1px solid #1f2937 !important;
+  fill: #e2e8f0 !important;
+}
+.react-flow__controls-button:hover {
+  background: #1f2937 !important;
+}
+
+/* Transition utility */
+.transition-smooth {
+  transition: all 200ms ease;
+}
