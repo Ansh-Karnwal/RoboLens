@@ -17,6 +17,7 @@ import { Robot } from './Robot';
 import { Pathfinding } from './Pathfinding';
 import { TaskManager } from './TaskManager';
 import { EventGenerator } from './EventGenerator';
+import { WorkflowEngine, WorkflowAction } from './WorkflowEngine';
 
 const GRID_WIDTH = 20;
 const GRID_HEIGHT = 15;
@@ -57,6 +58,7 @@ export class WarehouseSimulation {
   private lastHistoryRecord: number = 0;
   private onBroadcast: SimulationCallback | null = null;
   private humanMoveTick: number = 0;
+  private workflowEngine: WorkflowEngine;
 
   constructor(tickMs: number = 100) {
     this.tickMs = tickMs;
@@ -64,6 +66,7 @@ export class WarehouseSimulation {
     this.pathfinder = new Pathfinding(this.grid);
     this.taskManager = new TaskManager();
     this.eventGenerator = new EventGenerator(this.grid);
+    this.workflowEngine = new WorkflowEngine();
     this.initRobots();
   }
 
@@ -190,12 +193,6 @@ export class WarehouseSimulation {
     // Update human worker
     this.updateHumanWorker();
 
-    // Generate random events
-    const newEvents = this.eventGenerator.tick(this.tickMs, speed);
-    for (const event of newEvents) {
-      this.handleNewEvent(event);
-    }
-
     // Record task history every 10 seconds
     const now = Date.now();
     if (now - this.lastHistoryRecord >= 10000) {
@@ -239,33 +236,62 @@ export class WarehouseSimulation {
       }
     }
 
-    // Create task and assign using rule-based fallback
-    // (Gemini is called separately via handleEventWithGemini)
-    const task = this.taskManager.createTaskFromEvent(event);
-    const assigned = this.taskManager.assignTaskToNearestRobot(task, this.robots);
-    if (assigned) {
-      this.addLog(
-        'TASK_ASSIGNED',
-        `${assigned.id} assigned to ${task.type} at (${task.location.x}, ${task.location.y})`,
-        '#00d4ff'
-      );
-      this.broadcast('task:assigned', {
-        taskId: task.id,
-        robotId: assigned.id,
-        taskType: task.type,
-        location: task.location,
-      });
-    }
-
-    // Mark event as resolved after task assignment
-    event.resolved = true;
-    this.activeEvents = this.activeEvents.filter(e => !e.resolved);
+    // Assignment is handled externally by Gemini (or fallback) in index.ts
+    // Do NOT auto-assign here to avoid duplicate robot dispatches.
   }
 
   triggerManualEvent(type: EventType, location?: Position): SimulationEvent {
     const event = this.eventGenerator.generateManualEvent(type, location);
     this.handleNewEvent(event);
     return event;
+  }
+
+  resolveEvent(eventId: string): void {
+    const event = this.activeEvents.find(e => e.id === eventId);
+    if (event) {
+      event.resolved = true;
+      this.activeEvents = this.activeEvents.filter(e => !e.resolved);
+    }
+  }
+
+  clearAllEvents(): void {
+    for (const event of this.activeEvents) {
+      event.resolved = true;
+    }
+    this.activeEvents = [];
+    this.humanWorker = null;
+    // Resume any paused robots
+    for (const robot of this.robots) {
+      if (robot.state === 'PAUSED') {
+        robot.resume();
+        this.addLog('SAFETY_ALERT', `${robot.id} resumed — events cleared`, '#00ff88');
+      }
+    }
+    this.addLog('SYSTEM', 'All events cleared', '#888888');
+    this.broadcast('events:cleared', {});
+  }
+
+  updateWorkflow(nodes: { id: string; type: string; data: Record<string, string> }[], edges: { id: string; source: string; target: string; sourceHandle?: string }[]): void {
+    this.workflowEngine.updateWorkflow(nodes, edges);
+    this.addLog('SYSTEM', `Workflow updated: ${nodes.length} nodes, ${edges.length} edges`, '#a855f7');
+    this.broadcast('workflow:updated', { nodeCount: nodes.length, edgeCount: edges.length });
+  }
+
+  /**
+   * Run the workflow engine for an event. Returns true if the workflow
+   * contained an 'ask_gemini' action (caller should then invoke Gemini).
+   */
+  executeWorkflow(event: SimulationEvent): { actions: WorkflowAction[]; needsGemini: boolean; logs: string[] } {
+    const actions = this.workflowEngine.evaluate(event, this.robots);
+    const logs = this.workflowEngine.executeActions(actions, event, this.robots);
+
+    for (const msg of logs) {
+      this.addLog('WORKFLOW', msg, '#a855f7');
+      this.broadcast('workflow:action', { message: msg });
+    }
+
+    const needsGemini = actions.some(a => a.action === 'ask_gemini' || a.action === 'execute_ai');
+    return { actions, needsGemini, logs };
   }
 
   sendRobotCommand(robotId: RobotId, command: string, params: Record<string, unknown>): boolean {

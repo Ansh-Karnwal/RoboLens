@@ -5,14 +5,17 @@ interface ConditionNodeData {
   condition: string;
 }
 
-export default function ConditionNode({ data }: NodeProps<ConditionNodeData>) {
+export default function ConditionNode({ data, selected }: NodeProps<ConditionNodeData>) {
   return (
     <div
-      className="px-4 py-2 rounded-lg border-2 min-w-[160px]"
+      className="px-4 py-2 rounded-lg border-2 min-w-[160px] transition-all duration-150"
       style={{
-        background: 'rgba(255, 204, 0, 0.1)',
-        borderColor: '#ffcc00',
-        boxShadow: '0 0 10px rgba(255, 204, 0, 0.2)',
+        background: selected ? 'rgba(255, 204, 0, 0.25)' : 'rgba(255, 204, 0, 0.1)',
+        borderColor: selected ? '#ffd84d' : '#ffcc00',
+        boxShadow: selected
+          ? '0 0 20px rgba(255, 204, 0, 0.5), 0 0 40px rgba(255, 204, 0, 0.15)'
+          : '0 0 10px rgba(255, 204, 0, 0.2)',
+        transform: selected ? 'scale(1.03)' : 'scale(1)',
       }}
     >
       <Handle

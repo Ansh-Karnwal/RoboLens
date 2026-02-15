@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 import { ClientWSMessage, ServerWSMessage } from '../types';
+import { defaultNodes, defaultEdges } from '../components/WorkflowBuilder/defaultWorkflows';
 
 const WS_URL = import.meta.env?.VITE_BACKEND_WS_URL || 'ws://localhost:3001';
 const API_URL = import.meta.env?.VITE_BACKEND_API_URL || 'http://localhost:3001';
@@ -17,6 +18,8 @@ export function useWebSocket() {
   const updateMetrics = useSimulationStore((s) => s.updateMetrics);
   const addLog = useSimulationStore((s) => s.addLog);
   const setFullState = useSimulationStore((s) => s.setFullState);
+  const clearEvents = useSimulationStore((s) => s.clearEvents);
+  const setGeminiThinking = useSimulationStore((s) => s.setGeminiThinking);
   const connected = useSimulationStore((s) => s.connected);
 
   const connect = useCallback(() => {
@@ -35,6 +38,15 @@ export function useWebSocket() {
           setFullState(state);
         })
         .catch(console.error);
+
+      // Sync default workflows to backend on connect
+      ws.send(JSON.stringify({
+        type: 'workflow:sync',
+        data: {
+          nodes: defaultNodes.map((n) => ({ id: n.id, type: n.type || '', data: n.data })),
+          edges: defaultEdges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: (e as any).sourceHandle || undefined })),
+        },
+      }));
     };
 
     ws.onmessage = (event) => {
@@ -83,6 +95,21 @@ export function useWebSocket() {
               color: '#ff6b35',
             });
             break;
+          case 'workflow:action':
+            addLog({
+              id: `wf-${Date.now()}`,
+              type: 'GEMINI_DECISION',
+              message: msg.data.message,
+              timestamp: Date.now(),
+              color: '#a855f7',
+            });
+            break;
+          case 'gemini:skipped':
+            setGeminiThinking(false);
+            break;
+          case 'events:cleared':
+            clearEvents();
+            break;
           case 'state:full':
             setFullState(msg.data);
             break;
@@ -101,7 +128,7 @@ export function useWebSocket() {
     ws.onerror = () => {
       ws.close();
     };
-  }, [setConnected, setWsLatency, updateRobot, addEvent, addGeminiResponse, updateMetrics, addLog, setFullState]);
+  }, [setConnected, setWsLatency, updateRobot, addEvent, addGeminiResponse, updateMetrics, addLog, setFullState, clearEvents, setGeminiThinking]);
 
   const send = useCallback((msg: ClientWSMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

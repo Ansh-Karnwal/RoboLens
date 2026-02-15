@@ -4,14 +4,17 @@ interface AIDecisionNodeData {
   label: string;
 }
 
-export default function AIDecisionNode({ data }: NodeProps<AIDecisionNodeData>) {
+export default function AIDecisionNode({ data, selected }: NodeProps<AIDecisionNodeData>) {
   return (
     <div
-      className="px-4 py-2 rounded-lg border-2 min-w-[160px]"
+      className="px-4 py-2 rounded-lg border-2 min-w-[160px] transition-all duration-150"
       style={{
-        background: 'rgba(168, 85, 247, 0.1)',
-        borderColor: '#a855f7',
-        boxShadow: '0 0 10px rgba(168, 85, 247, 0.2)',
+        background: selected ? 'rgba(168, 85, 247, 0.25)' : 'rgba(168, 85, 247, 0.1)',
+        borderColor: selected ? '#c084fc' : '#a855f7',
+        boxShadow: selected
+          ? '0 0 20px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.15)'
+          : '0 0 10px rgba(168, 85, 247, 0.2)',
+        transform: selected ? 'scale(1.03)' : 'scale(1)',
       }}
     >
       <Handle

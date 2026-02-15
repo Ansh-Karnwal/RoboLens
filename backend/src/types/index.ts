@@ -150,15 +150,21 @@ export type ServerWSMessage =
   | { type: 'event:new'; data: SimulationEvent }
   | { type: 'gemini:response'; data: GeminiResponse }
   | { type: 'workflow:execute'; data: { nodeId: string; status: string } }
+  | { type: 'workflow:updated'; data: { nodeCount: number; edgeCount: number } }
+  | { type: 'workflow:action'; data: { message: string } }
   | { type: 'metrics:update'; data: SimulationMetrics }
   | { type: 'task:assigned'; data: { taskId: string; robotId: RobotId; taskType: TaskType; location: Position } }
   | { type: 'task:completed'; data: { taskId: string; robotId: RobotId; duration: number } }
   | { type: 'alert:safety'; data: { message: string; zone: ZoneName; severity: 'low' | 'medium' | 'high' } }
+  | { type: 'gemini:skipped'; data: { eventType: string } }
+  | { type: 'events:cleared'; data: Record<string, never> }
   | { type: 'state:full'; data: WarehouseState };
 
 export type ClientWSMessage =
   | { type: 'robot:manual'; data: { robotId: RobotId; destination: Position } }
   | { type: 'event:trigger'; data: { type: EventType; location?: Position } }
+  | { type: 'event:clear'; data: Record<string, never> }
+  | { type: 'workflow:sync'; data: { nodes: { id: string; type: string; data: Record<string, string> }[]; edges: { id: string; source: string; target: string; sourceHandle?: string }[] } }
   | { type: 'workflow:activate'; data: { workflowId: string; active: boolean } }
   | { type: 'simulation:speed'; data: { multiplier: number } };
 

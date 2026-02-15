@@ -7,6 +7,7 @@ interface NavigationProps {
 
 const TABS: { id: TabView; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '◉' },
+  { id: 'cameras', label: 'Cameras', icon: '◎' },
   { id: 'workflow', label: 'Workflow Builder', icon: '⬡' },
   { id: 'analytics', label: 'Analytics', icon: '◈' },
 ];

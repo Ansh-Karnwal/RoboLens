@@ -20,7 +20,7 @@ export default function AIReasoningPanel({
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 rounded-full bg-rl-purple animate-pulse" />
         <span className="text-[11px] text-rl-purple font-heading font-semibold">
-          GEMINI 2.0 FLASH
+          GEMINI 3.0 FLASH
         </span>
         {latestResponse?.latency && (
           <span className="text-[9px] text-gray-500 ml-auto">

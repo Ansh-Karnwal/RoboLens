@@ -6,7 +6,7 @@ const router = Router();
 
 let genAI: GoogleGenerativeAI | null = null;
 let lastCallTime = 0;
-const DEBOUNCE_MS = 3000;
+const DEBOUNCE_MS = 1500;
 
 function initGemini(): GoogleGenerativeAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -18,38 +18,45 @@ function initGemini(): GoogleGenerativeAI | null {
 }
 
 function buildPrompt(state: GeminiPromptState, newEvent: { type: string; location: { x: number; y: number }; description: string }): string {
-  return `You are RoboLens, an AI orchestration system for a warehouse robot fleet.
+  const eventLoc = newEvent.location;
 
-Current warehouse state:
+  const taskTypeMap: Record<string, string> = {
+    PACKAGE_DROP: 'PICKUP',
+    SPILL: 'CLEAN',
+    HUMAN_ENTRY: 'ESCORT',
+    CONGESTION: 'STANDBY',
+    BATTERY_LOW: 'RECHARGE',
+  };
+  const requiredTask = taskTypeMap[newEvent.type] || 'STANDBY';
+  const priority = newEvent.type === 'HUMAN_ENTRY' ? 5 : newEvent.type === 'SPILL' ? 4 : 3;
 
-Robots: ${JSON.stringify(state.robots, null, 2)}
-Active events: ${JSON.stringify(state.activeEvents, null, 2)}
-Zone occupancy: ${JSON.stringify(state.zoneOccupancy)}
-Human worker position: ${JSON.stringify(state.humanWorkerPosition)}
+  // Pre-compute distance from each robot to the event
+  const robotsWithDistance = state.robots.map(r => ({
+    ...r,
+    battery: Math.round(r.battery),
+    distance: Math.abs(r.position.x - eventLoc.x) + Math.abs(r.position.y - eventLoc.y),
+  })).sort((a, b) => a.distance - b.distance);
 
-New event: ${JSON.stringify(newEvent)}
+  return `You are RoboLens, an AI coordinator for a 20x15 warehouse with 4 robots.
 
-Respond ONLY with valid JSON (no markdown, no code fences):
-{
-  "reasoning": "brief explanation of decision",
-  "assignments": [
-    {
-      "robotId": "R1",
-      "taskType": "PICKUP|CLEAN|ESCORT|RECHARGE|STANDBY",
-      "priority": 1,
-      "targetLocation": {"x": 0, "y": 0},
-      "reason": "why this robot was chosen"
-    }
-  ],
-  "alerts": ["any safety alerts or system warnings"]
-}
+EVENT: ${newEvent.type} at (${eventLoc.x}, ${eventLoc.y})
+REQUIRED TASK: ${requiredTask}
 
-Rules:
-- Only assign robots that are IDLE or have short queues
-- Prioritize safety: if a human is present, pause nearby robots
-- Consider battery levels: don't send low-battery robots on long trips
-- Prefer the nearest available robot for efficiency
-- You may assign multiple robots if needed`;
+ROBOTS (sorted closest to farthest):
+${robotsWithDistance.map(r =>
+  `  ${r.id}: pos=(${r.position.x},${r.position.y}) distance=${r.distance} state=${r.state} battery=${r.battery}% currentTask=${r.currentTask || 'none'} queueLength=${r.queueLength}`
+).join('\n')}
+
+${state.humanWorkerPosition ? `HUMAN WORKER at (${state.humanWorkerPosition.x}, ${state.humanWorkerPosition.y}) — nearby robots must yield.` : ''}
+
+ASSIGNMENT RULES:
+1. Pick EXACTLY ONE robot — the closest IDLE robot with battery > 20%.
+2. If no IDLE robot qualifies, pick the closest with queueLength < 3.
+3. Never pick a robot with battery < 15%.
+4. taskType must be "${requiredTask}", targetLocation must be {"x":${eventLoc.x},"y":${eventLoc.y}}, priority must be ${priority}.
+
+OUTPUT: Respond with ONLY raw JSON, no markdown fences, no extra text.
+{"reasoning":"<1 sentence>","assignments":[{"robotId":"<ID>","taskType":"${requiredTask}","priority":${priority},"targetLocation":{"x":${eventLoc.x},"y":${eventLoc.y}},"reason":"<short>"}],"alerts":[]}`;
 }
 
 function fallbackAssignment(state: GeminiPromptState, eventType: string, location: { x: number; y: number }): GeminiResponse {
@@ -118,10 +125,14 @@ export async function analyzeWithGemini(
 
   try {
     const startTime = Date.now();
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
     const prompt = buildPrompt(state, event);
 
-    const result = await model.generateContent(prompt);
+    // Race against a 10s timeout to prevent indefinite hanging
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini API timed out after 10s')), 10000)
+    );
+    const result = await Promise.race([model.generateContent(prompt), timeoutPromise]);
     const response = result.response;
     const text = response.text();
 

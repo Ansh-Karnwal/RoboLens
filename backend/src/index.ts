@@ -45,19 +45,43 @@ wsManager.setMessageHandler(async (msg: ClientWSMessage) => {
       const { type, location } = msg.data;
       const event = simulation.triggerManualEvent(type as EventType, location);
 
-      // Also call Gemini for AI reasoning
-      const state = simulation.getGeminiPromptState();
-      const geminiResponse = await analyzeWithGemini(state, {
-        type: event.type,
-        location: event.location,
-        description: event.description,
-      });
+      // 1. Run workflow engine first
+      const workflowResult = simulation.executeWorkflow(event);
 
-      if (geminiResponse.assignments.length > 0 && !geminiResponse.fallback) {
-        simulation.applyGeminiAssignments(geminiResponse.assignments);
+      // 2. Only call Gemini for SPILL and PACKAGE_DROP events
+      const geminiEventTypes: EventType[] = ['SPILL', 'PACKAGE_DROP'];
+      const shouldCallGemini = geminiEventTypes.includes(event.type as EventType) &&
+        (workflowResult.needsGemini || workflowResult.actions.length === 0);
+
+      if (shouldCallGemini) {
+        const state = simulation.getGeminiPromptState();
+        const geminiResponse = await analyzeWithGemini(state, {
+          type: event.type,
+          location: event.location,
+          description: event.description,
+        });
+
+        if (geminiResponse.assignments.length > 0) {
+          simulation.applyGeminiAssignments(geminiResponse.assignments);
+        }
+
+        wsManager.broadcast('gemini:response', geminiResponse as unknown as Record<string, unknown>);
+      } else if (!geminiEventTypes.includes(event.type as EventType)) {
+        // Signal frontend that Gemini is not needed for this event type
+        wsManager.broadcast('gemini:skipped', { eventType: event.type } as unknown as Record<string, unknown>);
       }
 
-      wsManager.broadcast('gemini:response', geminiResponse as unknown as Record<string, unknown>);
+      // 3. Resolve the event now that it's been handled
+      simulation.resolveEvent(event.id);
+      break;
+    }
+    case 'event:clear': {
+      simulation.clearAllEvents();
+      break;
+    }
+    case 'workflow:sync': {
+      const { nodes, edges } = msg.data;
+      simulation.updateWorkflow(nodes, edges);
       break;
     }
     case 'simulation:speed': {

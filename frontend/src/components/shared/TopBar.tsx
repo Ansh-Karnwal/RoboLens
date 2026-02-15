@@ -10,6 +10,7 @@ interface TopBarProps {
   simulationSpeed: number;
   onSpeedChange: (speed: number) => void;
   onTriggerEvent: (type: EventType) => void;
+  onClearEvents: () => void;
   metrics: SimulationMetrics;
   wsLatency: number;
 }
@@ -21,6 +22,7 @@ export default function TopBar({
   simulationSpeed,
   onSpeedChange,
   onTriggerEvent,
+  onClearEvents,
   metrics,
   wsLatency,
 }: TopBarProps) {
@@ -104,6 +106,15 @@ export default function TopBar({
             </div>
           )}
         </div>
+
+        {/* Clear Events */}
+        <button
+          onClick={onClearEvents}
+          className="text-[10px] px-3 py-1.5 rounded border border-red-500/50 text-red-400
+                     hover:bg-red-500/10 transition-smooth"
+        >
+          Clear Events
+        </button>
 
         {/* KPI pills */}
         <div className="hidden xl:flex items-center gap-2">

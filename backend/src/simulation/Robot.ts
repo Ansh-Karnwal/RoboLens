@@ -61,7 +61,11 @@ export class Robot {
   }
 
   needsCharging(): boolean {
-    return this.data.battery < LOW_BATTERY_THRESHOLD && this.data.state !== 'CHARGING';
+    return (
+      this.data.battery < LOW_BATTERY_THRESHOLD &&
+      this.data.state !== 'CHARGING' &&
+      this.data.currentTask?.type !== 'RECHARGE'
+    );
   }
 
   isAvailable(): boolean {

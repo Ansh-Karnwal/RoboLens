@@ -64,6 +64,7 @@ interface SimulationStore {
     tick: number;
   }) => void;
   setHumanWorker: (hw: HumanWorker | null) => void;
+  clearEvents: () => void;
 }
 
 export const useSimulationStore = create<SimulationStore>((set) => ({
@@ -157,6 +158,8 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
     }),
 
   setHumanWorker: (humanWorker) => set({ humanWorker }),
+
+  clearEvents: () => set({ activeEvents: [], humanWorker: null }),
 }));
 
 function getEventColor(type: string): string {

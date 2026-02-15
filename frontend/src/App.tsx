@@ -3,6 +3,7 @@ import { useSimulation } from './hooks/useSimulation';
 import { useSimulationStore } from './store/simulationStore';
 import TopBar from './components/shared/TopBar';
 import Dashboard from './components/Dashboard/Dashboard';
+import CameraView from './components/Cameras/CameraView';
 import WorkflowBuilder from './components/WorkflowBuilder/WorkflowBuilder';
 import Analytics from './components/Analytics/Analytics';
 
@@ -21,6 +22,7 @@ export default function App() {
         simulationSpeed={sim.simulationSpeed}
         onSpeedChange={sim.setSpeed}
         onTriggerEvent={sim.triggerEvent}
+        onClearEvents={sim.clearEvents}
         metrics={sim.metrics}
         wsLatency={wsLatency}
       />
@@ -38,7 +40,16 @@ export default function App() {
             triggerEvent={sim.triggerEvent}
           />
         )}
-        {activeTab === 'workflow' && <WorkflowBuilder />}
+        {activeTab === 'cameras' && (
+          <CameraView
+            robots={sim.robots}
+            activeEvents={sim.activeEvents}
+            humanWorker={sim.humanWorker}
+            grid={sim.grid}
+            obstacles={sim.obstacles}
+          />
+        )}
+        {activeTab === 'workflow' && <WorkflowBuilder onWorkflowChange={sim.syncWorkflow} />}
         {activeTab === 'analytics' && <Analytics metrics={sim.metrics} />}
       </main>
 
