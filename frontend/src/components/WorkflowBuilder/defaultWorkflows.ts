@@ -1,7 +1,7 @@
 import { Node, Edge } from 'reactflow';
 
 export const defaultNodes: Node[] = [
-  // Workflow 1: Package handling
+  // Workflow 1: Package handling (AI-powered)
   {
     id: 'pkg-trigger',
     type: 'triggerNode',
@@ -9,34 +9,16 @@ export const defaultNodes: Node[] = [
     data: { label: 'Package Detected', eventType: 'PACKAGE_DROP' },
   },
   {
-    id: 'pkg-priority',
-    type: 'conditionNode',
-    position: { x: 300, y: 40 },
-    data: { label: 'Priority > 3?', condition: 'priority > 3' },
+    id: 'pkg-ai',
+    type: 'aiDecisionNode',
+    position: { x: 300, y: 50 },
+    data: { label: 'Ask Gemini' },
   },
   {
-    id: 'pkg-dispatch-high',
+    id: 'pkg-action',
     type: 'actionNode',
-    position: { x: 570, y: 10 },
-    data: { label: 'Dispatch Nearest Robot', action: 'dispatch_nearest' },
-  },
-  {
-    id: 'pkg-idle-check',
-    type: 'conditionNode',
-    position: { x: 570, y: 100 },
-    data: { label: 'Zone Has Idle Robot?', condition: 'zone_has_idle' },
-  },
-  {
-    id: 'pkg-dispatch-idle',
-    type: 'actionNode',
-    position: { x: 820, y: 70 },
-    data: { label: 'Dispatch Nearest Robot', action: 'dispatch_nearest' },
-  },
-  {
-    id: 'pkg-queue',
-    type: 'actionNode',
-    position: { x: 820, y: 150 },
-    data: { label: 'Queue Task', action: 'queue_task' },
+    position: { x: 570, y: 50 },
+    data: { label: 'Execute AI Plan', action: 'execute_ai' },
   },
 
   // Workflow 2: Human safety
@@ -89,51 +71,20 @@ export const defaultNodes: Node[] = [
 ];
 
 export const defaultEdges: Edge[] = [
-  // Package workflow
+  // Package workflow (AI-powered)
   {
     id: 'e-pkg-1',
     source: 'pkg-trigger',
-    target: 'pkg-priority',
+    target: 'pkg-ai',
     animated: true,
-    style: { stroke: '#00ff88' },
+    style: { stroke: '#a855f7' },
   },
   {
     id: 'e-pkg-2',
-    source: 'pkg-priority',
-    sourceHandle: 'yes',
-    target: 'pkg-dispatch-high',
+    source: 'pkg-ai',
+    target: 'pkg-action',
     animated: true,
-    style: { stroke: '#00ff88' },
-    label: 'YES',
-    labelStyle: { fill: '#00ff88', fontSize: 9 },
-    labelBgStyle: { fill: '#0a0e1a' },
-  },
-  {
-    id: 'e-pkg-3',
-    source: 'pkg-priority',
-    sourceHandle: 'no',
-    target: 'pkg-idle-check',
-    animated: true,
-    style: { stroke: '#ff4444' },
-    label: 'NO',
-    labelStyle: { fill: '#ff4444', fontSize: 9 },
-    labelBgStyle: { fill: '#0a0e1a' },
-  },
-  {
-    id: 'e-pkg-4',
-    source: 'pkg-idle-check',
-    sourceHandle: 'yes',
-    target: 'pkg-dispatch-idle',
-    animated: true,
-    style: { stroke: '#00ff88' },
-  },
-  {
-    id: 'e-pkg-5',
-    source: 'pkg-idle-check',
-    sourceHandle: 'no',
-    target: 'pkg-queue',
-    animated: true,
-    style: { stroke: '#ff4444' },
+    style: { stroke: '#a855f7' },
   },
 
   // Human safety workflow

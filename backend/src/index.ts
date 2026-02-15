@@ -66,8 +66,8 @@ wsManager.setMessageHandler(async (msg: ClientWSMessage) => {
         }
 
         wsManager.broadcast('gemini:response', geminiResponse as unknown as Record<string, unknown>);
-      } else if (!geminiEventTypes.includes(event.type as EventType)) {
-        // Signal frontend that Gemini is not needed for this event type
+      } else {
+        // Gemini was not called — signal frontend to clear thinking state
         wsManager.broadcast('gemini:skipped', { eventType: event.type } as unknown as Record<string, unknown>);
       }
 
